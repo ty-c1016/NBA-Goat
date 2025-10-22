@@ -55,26 +55,8 @@ function handleFormSubmit(event) {
         submitButton.disabled = true;
     }
 
-    // Validate that at least one slider has a meaningful value
-    const sliders = form.querySelectorAll('input[type="range"]');
-    let hasValidInput = false;
-
-    sliders.forEach(slider => {
-        if (parseFloat(slider.value) > 0.1) {
-            hasValidInput = true;
-        }
-    });
-
-    if (!hasValidInput) {
-        event.preventDefault();
-        alert('Please set at least one preference above 10% to continue.');
-
-        if (submitButton) {
-            submitButton.innerHTML = 'Calculate My Rankings';
-            submitButton.disabled = false;
-        }
-        return false;
-    }
+    // No additional validation needed - questions.html already validates that total = 100%
+    // and the form will handle percentage to decimal conversion
 }
 
 function addLoadingStates() {

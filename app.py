@@ -130,6 +130,7 @@ def api_player_detail(player_id):
 def calculate_player_rankings(preferences):
     """Calculate player rankings based on user preferences with normalized scoring"""
     import numpy as np
+    from scipy import stats
 
     # Filter for quality players only (minimum 20 games for meaningful stats)
     players = db.session.query(Player).join(CareerStats).join(Achievement).filter(
@@ -139,74 +140,58 @@ def calculate_player_rankings(preferences):
     if not players:
         return []
 
-    # Extract all stats for normalization
+    # Extract all stats as numpy arrays for fast vectorized operations
     all_stats = {
-        'ppg': [p.career_stats.points_per_game or 0 for p in players],
-        'fg_pct': [p.career_stats.field_goal_percentage or 0 for p in players],
-        'apg': [p.career_stats.assists_per_game or 0 for p in players],
-        'rpg': [p.career_stats.rebounds_per_game or 0 for p in players],
-        'spg': [p.career_stats.steals_per_game or 0 for p in players],
-        'bpg': [p.career_stats.blocks_per_game or 0 for p in players],
-        'games': [p.career_stats.games_played or 0 for p in players],
-        'total_points': [p.career_stats.total_points or 0 for p in players],
-        'championships': [p.achievements.championships or 0 for p in players],
-        'finals_appearances': [p.achievements.finals_appearances or 0 for p in players],
-        'mvp_awards': [p.achievements.mvp_awards or 0 for p in players],
-        'all_star_selections': [p.achievements.all_star_selections or 0 for p in players]
+        'ppg': np.array([p.career_stats.points_per_game or 0 for p in players], dtype=float),
+        'fg_pct': np.array([p.career_stats.field_goal_percentage or 0 for p in players], dtype=float),
+        'apg': np.array([p.career_stats.assists_per_game or 0 for p in players], dtype=float),
+        'rpg': np.array([p.career_stats.rebounds_per_game or 0 for p in players], dtype=float),
+        'spg': np.array([p.career_stats.steals_per_game or 0 for p in players], dtype=float),
+        'bpg': np.array([p.career_stats.blocks_per_game or 0 for p in players], dtype=float),
+        'games': np.array([p.career_stats.games_played or 0 for p in players], dtype=float),
+        'total_points': np.array([p.career_stats.total_points or 0 for p in players], dtype=float),
+        'championships': np.array([p.achievements.championships or 0 for p in players], dtype=float),
+        'finals_appearances': np.array([p.achievements.finals_appearances or 0 for p in players], dtype=float),
+        'mvp_awards': np.array([p.achievements.mvp_awards or 0 for p in players], dtype=float),
+        'all_star_selections': np.array([p.achievements.all_star_selections or 0 for p in players], dtype=float)
     }
 
-    # Calculate percentiles for normalization (0-100 scale)
-    def get_percentile_score(value, stat_list):
-        if not stat_list or len(stat_list) == 0:
-            return 0
-        if value is None:
-            return 0
-
-        # Convert to float and handle NaN
-        try:
-            value = float(value)
-            if np.isnan(value):
-                return 0
-        except (TypeError, ValueError):
-            return 0
-
-        # Sort the list and find percentile
-        sorted_list = sorted([float(x) for x in stat_list if x is not None and not np.isnan(float(x))])
-        if not sorted_list:
-            return 0
-
-        # Find the percentile rank
-        n = len(sorted_list)
-        rank = sum(1 for x in sorted_list if x <= value)
-        return (rank / n) * 100
+    # Pre-compute percentile ranks using scipy for all stats at once (much faster)
+    # This converts raw values to 0-100 percentile scale
+    percentile_stats = {}
+    for stat_name, stat_values in all_stats.items():
+        # Use scipy.stats.rankdata for fast percentile calculation
+        # 'average' method handles ties by averaging ranks
+        ranks = stats.rankdata(stat_values, method='average')
+        percentile_stats[stat_name] = (ranks / len(ranks)) * 100
 
     scored_players = []
 
-    for player in players:
+    for idx, player in enumerate(players):
         if not player.career_stats:
             continue
 
-        # Normalize each metric to 0-100 percentile
+        # Lookup pre-computed percentiles (O(1) instead of O(n))
         offensive_metrics = {
-            'ppg': get_percentile_score(player.career_stats.points_per_game or 0, all_stats['ppg']),
-            'fg_pct': get_percentile_score(player.career_stats.field_goal_percentage or 0, all_stats['fg_pct']),
-            'apg': get_percentile_score(player.career_stats.assists_per_game or 0, all_stats['apg']),
-            'total_points': get_percentile_score(player.career_stats.total_points or 0, all_stats['total_points'])
+            'ppg': percentile_stats['ppg'][idx],
+            'fg_pct': percentile_stats['fg_pct'][idx],
+            'apg': percentile_stats['apg'][idx],
+            'total_points': percentile_stats['total_points'][idx]
         }
 
         defensive_metrics = {
-            'spg': get_percentile_score(player.career_stats.steals_per_game or 0, all_stats['spg']),
-            'bpg': get_percentile_score(player.career_stats.blocks_per_game or 0, all_stats['bpg']),
-            'rpg': get_percentile_score(player.career_stats.rebounds_per_game or 0, all_stats['rpg'])
+            'spg': percentile_stats['spg'][idx],
+            'bpg': percentile_stats['bpg'][idx],
+            'rpg': percentile_stats['rpg'][idx]
         }
 
         longevity_metrics = {
-            'games': get_percentile_score(player.career_stats.games_played or 0, all_stats['games'])
+            'games': percentile_stats['games'][idx]
         }
 
         team_success_metrics = {
-            'championships': get_percentile_score(player.achievements.championships or 0, all_stats['championships']),
-            'finals_appearances': get_percentile_score(player.achievements.finals_appearances or 0, all_stats['finals_appearances'])
+            'championships': percentile_stats['championships'][idx],
+            'finals_appearances': percentile_stats['finals_appearances'][idx]
         }
 
         efficiency_metrics = {
@@ -215,8 +200,8 @@ def calculate_player_rankings(preferences):
         }
 
         peak_performance_metrics = {
-            'mvp_awards': get_percentile_score(player.achievements.mvp_awards or 0, all_stats['mvp_awards']),
-            'all_star_selections': get_percentile_score(player.achievements.all_star_selections or 0, all_stats['all_star_selections'])
+            'mvp_awards': percentile_stats['mvp_awards'][idx],
+            'all_star_selections': percentile_stats['all_star_selections'][idx]
         }
 
         # Calculate weighted category scores (0-100 scale)

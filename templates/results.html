@@ -1,0 +1,92 @@
+{# Results: displays ranked players table and preferences summary #}
+{% extends "base.html" %}
+
+{% block title %}NBA GOAT Analyzer - Results{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-4">
+            <h1 class="display-5">Your NBA GOAT Rankings</h1>
+            <p class="lead">Based on your preferences, here are the top 100 greatest NBA players</p>
+        </div>
+
+        <!-- User Preferences Summary -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Your Preferences</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Offensive Skills:</strong> {{ (session.offensive_weight * 100)|round|int }}%</li>
+                            <li><strong>Defensive Skills:</strong> {{ (session.defensive_weight * 100)|round|int }}%</li>
+                            <li><strong>Team Success:</strong> {{ (session.team_success_weight * 100)|round|int }}%</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Longevity:</strong> {{ (session.longevity_weight * 100)|round|int }}%</li>
+                            <li><strong>Efficiency:</strong> {{ (session.efficiency_weight * 100)|round|int }}%</li>
+                            <li><strong>Peak Performance:</strong> {{ (session.peak_performance_weight * 100)|round|int }}%</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Position</th>
+                                <th>Years Active</th>
+                                <th>PPG</th>
+                                <th>RPG</th>
+                                <th>APG</th>
+                                <th>Championships</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in players %}
+                            <tr>
+                                <td><strong>{{ loop.index }}</strong></td>
+                                <td>
+                                    <strong>{{ item.player.full_name }}</strong>
+                                    {% if item.achievements.hall_of_fame %}
+                                    <span class="badge bg-warning text-dark ms-1">HOF</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.player.position or 'N/A' }}</td>
+                                <td>{{ item.player.from_year }}-{{ item.player.to_year }}</td>
+                                <td>{{ "%.1f"|format(item.career_stats.points_per_game or 0) }}</td>
+                                <td>{{ "%.1f"|format(item.career_stats.rebounds_per_game or 0) }}</td>
+                                <td>{{ "%.1f"|format(item.career_stats.assists_per_game or 0) }}</td>
+                                <td>{{ item.achievements.championships or 0 }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ "%.1f"|format(item.score) }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('questions') }}" class="btn btn-primary">
+                Try Different Preferences
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

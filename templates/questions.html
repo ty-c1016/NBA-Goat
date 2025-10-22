@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}NBA GOAT Analyzer - Questions{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="text-center mb-4">
+            <h1 class="display-5">What Makes a Player Great?</h1>
+            <p class="lead">Adjust the pie chart to distribute 100% across the categories you value most.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('submit_preferences') }}" id="preferencesForm">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <!-- Pie Chart Column -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h5 class="text-center">Category Distribution</h5>
+                                <canvas id="categoryChart" width="400" height="400"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Category Input Column -->
+                        <div class="col-md-6">
+                            <h5 class="text-center mb-3">Adjust Percentages</h5>
+                            <p class="text-muted small text-center">Total must equal 100%</p>
+
+                            <!-- Offensive Skills -->
+                            <div class="mb-3">
+                                <label for="offensive_weight" class="form-label">
+                                    <strong>Offensive Skills</strong>
+                                    <small class="text-muted d-block">Scoring, shooting efficiency, playmaking</small>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control category-input"
+                                           id="offensive_weight" name="offensive_weight"
+                                           min="0" max="100" step="1" value="17" data-category="0">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Defensive Skills -->
+                            <div class="mb-3">
+                                <label for="defensive_weight" class="form-label">
+                                    <strong>Defensive Skills</strong>
+                                    <small class="text-muted d-block">Steals, blocks, defensive impact</small>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control category-input"
+                                           id="defensive_weight" name="defensive_weight"
+                                           min="0" max="100" step="1" value="17" data-category="1">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Team Success -->
+                            <div class="mb-3">
+                                <label for="team_success_weight" class="form-label">
+                                    <strong>Team Success</strong>
+                                    <small class="text-muted d-block">Championships, Finals appearances, playoff success</small>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control category-input"
+                                           id="team_success_weight" name="team_success_weight"
+                                           min="0" max="100" step="1" value="17" data-category="2">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Longevity -->
+                            <div class="mb-3">
+                                <label for="longevity_weight" class="form-label">
+                                    <strong>Career Longevity</strong>
+                                    <small class="text-muted d-block">Games played, seasons, sustained excellence</small>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control category-input"
+                                           id="longevity_weight" name="longevity_weight"
+                                           min="0" max="100" step="1" value="17" data-category="3">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Efficiency -->
+                            <div class="mb-3">
+                                <label for="efficiency_weight" class="form-label">
+                                    <strong>Statistical Efficiency</strong>
+                                    <small class="text-muted d-block">Advanced metrics, per-minute production</small>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control category-input"
+                                           id="efficiency_weight" name="efficiency_weight"
+                                           min="0" max="100" step="1" value="16" data-category="4">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Peak Performance -->
+                            <div class="mb-3">
+                                <label for="peak_performance_weight" class="form-label">
+                                    <strong>Peak Performance</strong>
+                                    <small class="text-muted d-block">Best seasons, MVP awards, dominance at their peak</small>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control category-input"
+                                           id="peak_performance_weight" name="peak_performance_weight"
+                                           min="0" max="100" step="1" value="16" data-category="5">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Total Display -->
+                            <div class="alert alert-info text-center">
+                                <strong>Total:</strong> <span id="totalPercentage">100</span>%
+                                <div id="totalWarning" class="text-danger small mt-1" style="display: none;">
+                                    Must equal 100% to submit
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Era Preference -->
+                    <div class="mb-4 mt-3">
+                        <label for="era_preference" class="form-label">
+                            <strong>Era Preference</strong>
+                            <small class="text-muted d-block">Do you prefer players from a specific era?</small>
+                        </label>
+                        <select class="form-select" id="era_preference" name="era_preference">
+                            <option value="any">All Eras Equally</option>
+                            <option value="modern">Modern Era (2000+)</option>
+                            <option value="classic">Classic Era (Pre-2000)</option>
+                        </select>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+                            Calculate My Rankings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categories = [
+        { name: 'Offensive Skills', color: '#FF6384' },
+        { name: 'Defensive Skills', color: '#36A2EB' },
+        { name: 'Team Success', color: '#FFCE56' },
+        { name: 'Career Longevity', color: '#4BC0C0' },
+        { name: 'Statistical Efficiency', color: '#9966FF' },
+        { name: 'Peak Performance', color: '#FF9F40' }
+    ];
+
+    const inputs = document.querySelectorAll('.category-input');
+    const totalDisplay = document.getElementById('totalPercentage');
+    const totalWarning = document.getElementById('totalWarning');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Initialize Chart
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: categories.map(c => c.name),
+            datasets: [{
+                data: Array.from(inputs).map(input => parseInt(input.value)),
+                backgroundColor: categories.map(c => c.color),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Update chart and validate total
+    function updateChart() {
+        const values = Array.from(inputs).map(input => parseInt(input.value) || 0);
+        const total = values.reduce((sum, val) => sum + val, 0);
+
+        chart.data.datasets[0].data = values;
+        chart.update();
+
+        totalDisplay.textContent = total;
+
+        if (total !== 100) {
+            totalDisplay.parentElement.classList.remove('alert-info');
+            totalDisplay.parentElement.classList.add('alert-warning');
+            totalWarning.style.display = 'block';
+            submitBtn.disabled = true;
+        } else {
+            totalDisplay.parentElement.classList.remove('alert-warning');
+            totalDisplay.parentElement.classList.add('alert-info');
+            totalWarning.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    }
+
+    // Add input listeners
+    inputs.forEach(input => {
+        input.addEventListener('input', updateChart);
+    });
+
+    // Form submission - convert percentages to 0-1 scale
+    document.getElementById('preferencesForm').addEventListener('submit', function(e) {
+        const total = Array.from(inputs).map(input => parseInt(input.value) || 0)
+            .reduce((sum, val) => sum + val, 0);
+
+        if (total !== 100) {
+            e.preventDefault();
+            alert('Total percentage must equal 100%. Currently: ' + total + '%');
+            return false;
+        }
+
+        // Convert percentages to 0-1 scale for backend
+        inputs.forEach(input => {
+            const percentage = parseInt(input.value) || 0;
+            input.value = (percentage / 100).toFixed(2);
+        });
+    });
+
+    // Initial validation
+    updateChart();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{# Homepage: explains app and links to questionnaire #}
+{% extends "base.html" %}
+
+{% block title %}NBA GOAT Analyzer - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-4">NBA GOAT Analyzer</h1>
+            <p class="lead">
+                Discover the greatest NBA players of all time based on what YOU value most in basketball greatness.
+            </p>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="card-title text-center mb-4">How It Works</h2>
+
+                <div class="row g-4">
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem;">
+                            <span class="fs-4">1</span>
+                        </div>
+                        <h5>Answer Questions</h5>
+                        <p>Tell us what aspects of greatness matter most to you - offense, defense, championships, longevity, and more.</p>
+                    </div>
+
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem;">
+                            <span class="fs-4">2</span>
+                        </div>
+                        <h5>AI Analysis</h5>
+                        <p>Our algorithm analyzes comprehensive NBA statistics and achievements based on your preferences.</p>
+                    </div>
+
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem;">
+                            <span class="fs-4">3</span>
+                        </div>
+                        <h5>Get Rankings</h5>
+                        <p>See the top 100 NBA players ranked according to your values, with detailed stats and explanations.</p>
+                    </div>
+                </div>
+
+                <div class="text-center mt-5">
+                    <a href="{{ url_for('questions') }}" class="btn btn-primary btn-lg px-5">
+                        Start the Analysis
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Comprehensive Data</h5>
+                            <p class="card-text">
+                                Our database includes extensive statistics, achievements, and career data for NBA players across all eras.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Personalized Results</h5>
+                            <p class="card-text">
+                                No two basketball fans are alike. Get rankings that reflect YOUR definition of basketball greatness.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

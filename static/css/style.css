@@ -1,0 +1,88 @@
+/* Custom styles for NBA GOAT Analyzer */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.feature-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.form-range::-webkit-slider-thumb {
+    background-color: #0d6efd;
+}
+
+.form-range::-moz-range-thumb {
+    background-color: #0d6efd;
+    border: none;
+}
+
+.table th {
+    border-top: none;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.display-4, .display-5 {
+    font-weight: 700;
+}
+
+.btn-lg {
+    font-size: 1.1rem;
+    padding: 0.75rem 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+
+    .display-5 {
+        font-size: 2rem;
+    }
+
+    .feature-icon {
+        width: 3rem;
+        height: 3rem;
+    }
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Custom badge colors */
+.badge.bg-warning {
+    color: #000 !important;
+}
+
+/* Table enhancements */
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.075);
+}
+
+.table th {
+    font-weight: 600;
+}
+
+/* Form enhancements */
+.form-range {
+    height: 1.5rem;
+}
+
+.form-select:focus, .form-range:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}

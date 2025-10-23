@@ -13,18 +13,20 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
 
     # Database configuration
-    POSTGRES_USER = os.environ.get('POSTGRES_USER') or 'ty'  # Use current user
-    POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD') or ''
-    POSTGRES_HOST = os.environ.get('POSTGRES_HOST') or 'localhost'
-    POSTGRES_PORT = os.environ.get('POSTGRES_PORT') or '5432'
-    POSTGRES_DB = os.environ.get('POSTGRES_DB') or 'nba_goat'
-
-    # Use PostgreSQL by default, fallback to SQLite for testing
-    if POSTGRES_PASSWORD:
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
-    else:
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'postgresql://{POSTGRES_USER}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
+    # Use DATABASE_URL from environment if set, otherwise default to SQLite
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'instance', 'nba_goat.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # SQLite-specific settings for better concurrency
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {
+            'timeout': 30,  # Wait up to 30 seconds if database is locked
+            'check_same_thread': False
+        },
+        'pool_pre_ping': True,
+        'pool_recycle': 3600
+    }
 
     # Application settings
     DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'

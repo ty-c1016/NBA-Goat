@@ -132,9 +132,11 @@ def calculate_player_rankings(preferences):
     import numpy as np
     from scipy import stats
 
-    # Filter for quality players only (minimum 20 games for meaningful stats)
+    # Filter for quality players only - baseline standards for GOAT consideration
+    # Minimum 400 games (≈5 seasons) and 10 PPG to ensure substantial, impactful careers
     players = db.session.query(Player).join(CareerStats).join(Achievement).filter(
-        CareerStats.games_played >= 20
+        CareerStats.games_played >= 400,
+        CareerStats.points_per_game >= 10.0
     ).all()
 
     if not players:
@@ -232,16 +234,23 @@ def calculate_player_rankings(preferences):
             peak_performance_metrics['all_star_selections'] * 0.4
         )
 
+        # Apply category floor weights to ensure all stats matter
+        # Even if user sets a category to 0%, it still has 10% baseline influence
+        # This prevents absurd rankings (e.g., a player with terrible stats ranking high)
+        FLOOR_WEIGHT = 0.10  # 10% minimum weight for each category
+
+        # Apply floor to each preference weight
+        floored_weights = {
+            'offensive': max(preferences['offensive_weight'], FLOOR_WEIGHT),
+            'defensive': max(preferences['defensive_weight'], FLOOR_WEIGHT),
+            'longevity': max(preferences['longevity_weight'], FLOOR_WEIGHT),
+            'team_success': max(preferences['team_success_weight'], FLOOR_WEIGHT),
+            'efficiency': max(preferences['efficiency_weight'], FLOOR_WEIGHT),
+            'peak_performance': max(preferences['peak_performance_weight'], FLOOR_WEIGHT)
+        }
+
         # Normalize weights to ensure they sum to 1.0
-        # This ensures that different weight distributions are comparable
-        total_weight = (
-            preferences['offensive_weight'] +
-            preferences['defensive_weight'] +
-            preferences['longevity_weight'] +
-            preferences['team_success_weight'] +
-            preferences['efficiency_weight'] +
-            preferences['peak_performance_weight']
-        )
+        total_weight = sum(floored_weights.values())
 
         # Avoid division by zero
         if total_weight == 0:
@@ -249,15 +258,11 @@ def calculate_player_rankings(preferences):
 
         # Normalize each weight
         normalized_weights = {
-            'offensive': preferences['offensive_weight'] / total_weight,
-            'defensive': preferences['defensive_weight'] / total_weight,
-            'longevity': preferences['longevity_weight'] / total_weight,
-            'team_success': preferences['team_success_weight'] / total_weight,
-            'efficiency': preferences['efficiency_weight'] / total_weight,
-            'peak_performance': preferences['peak_performance_weight'] / total_weight
+            category: weight / total_weight
+            for category, weight in floored_weights.items()
         }
 
-        # Final weighted score using normalized weights
+        # Final weighted score using normalized weights with floors
         # Each category score is 0-100, so final score will also be 0-100
         total_score = (
             offensive_score * normalized_weights['offensive'] +

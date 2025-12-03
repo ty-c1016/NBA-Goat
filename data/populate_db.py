@@ -259,6 +259,12 @@ def populate_from_api(min_games=400, min_seasons=10, min_ppg=10.0):
                 mvp_awards = 0
                 finals_mvp_awards = 0
                 all_star_selections = 0
+                all_nba_first = 0
+                all_nba_second = 0
+                all_nba_third = 0
+                all_defensive_first = 0
+                all_defensive_second = 0
+                scoring_titles = 0
 
                 if awards_df is not None and not awards_df.empty:
                     # Count championships (NBA Finals wins)
@@ -276,13 +282,33 @@ def populate_from_api(min_games=400, min_seasons=10, min_ppg=10.0):
                     # Count All-Star selections
                     all_star_selections = len(awards_df[awards_df['DESCRIPTION'].str.contains('All-Star', case=False, na=False)])
 
+                    # Count All-NBA selections using ALL_NBA_TEAM_NUMBER column
+                    all_nba_df = awards_df[awards_df['DESCRIPTION'].str.contains('All-NBA', case=False, na=False)]
+                    all_nba_first = len(all_nba_df[all_nba_df['ALL_NBA_TEAM_NUMBER'] == '1'])
+                    all_nba_second = len(all_nba_df[all_nba_df['ALL_NBA_TEAM_NUMBER'] == '2'])
+                    all_nba_third = len(all_nba_df[all_nba_df['ALL_NBA_TEAM_NUMBER'] == '3'])
+
+                    # Count All-Defensive selections
+                    all_def_df = awards_df[awards_df['DESCRIPTION'].str.contains('All-Defensive', case=False, na=False)]
+                    all_defensive_first = len(all_def_df)
+                    all_defensive_second = 0  # NBA API doesn't clearly distinguish defensive teams
+
+                    # Count scoring titles
+                    scoring_titles = len(awards_df[awards_df['DESCRIPTION'].str.contains('Scoring Champion|Scoring Title', case=False, na=False)])
+
                 achievements = Achievement(
                     player_id=player.id,
                     championships=championships,
                     finals_appearances=finals_appearances,
                     mvp_awards=mvp_awards,
                     finals_mvp_awards=finals_mvp_awards,
-                    all_star_selections=all_star_selections
+                    all_star_selections=all_star_selections,
+                    all_nba_first_team=all_nba_first,
+                    all_nba_second_team=all_nba_second,
+                    all_nba_third_team=all_nba_third,
+                    all_defensive_first_team=all_defensive_first,
+                    all_defensive_second_team=all_defensive_second,
+                    scoring_titles=scoring_titles
                 )
                 db.session.add(achievements)
 

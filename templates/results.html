@@ -58,9 +58,6 @@
                                 <td><strong>{{ loop.index }}</strong></td>
                                 <td>
                                     <strong>{{ item.player.full_name }}</strong>
-                                    {% if item.achievements.hall_of_fame %}
-                                    <span class="badge bg-warning text-dark ms-1">HOF</span>
-                                    {% endif %}
                                 </td>
                                 <td>{{ item.player.position or 'N/A' }}</td>
                                 <td>{{ item.player.from_year }}-{{ item.player.to_year }}</td>

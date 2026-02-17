@@ -37,7 +37,7 @@ export default function Home() {
         </p>
         <Link
           to="/questions"
-          className="inline-block bg-purple hover:bg-purple-dark text-white font-bold text-lg px-10 py-4 rounded-xl transition-colors shadow-md"
+          className="inline-block bg-purple-subtle border border-purple text-purple hover:bg-purple hover:text-white font-bold text-lg px-10 py-4 rounded-xl transition-colors shadow-md"
         >
           Start the Analysis
         </Link>
@@ -51,7 +51,7 @@ export default function Home() {
           {features.map((f, i) => (
             <div
               key={f.title}
-              className="bg-surface border border-border rounded-2xl p-6 text-center hover:border-purple-light hover:shadow-md transition-all"
+              className="bg-surface border border-rim rounded-2xl p-6 text-center hover:border-purple-light hover:shadow-md transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-purple-subtle flex items-center justify-center mx-auto mb-4 text-2xl">
                 {f.icon}
@@ -68,14 +68,14 @@ export default function Home() {
 
       {/* CTA */}
       <section className="text-center pb-24 px-4">
-        <div className="bg-surface border border-border rounded-2xl max-w-xl mx-auto py-10 px-8 shadow-sm">
+        <div className="bg-surface border border-rim rounded-2xl max-w-xl mx-auto py-10 px-8 shadow-sm">
           <p className="text-ink font-semibold text-lg mb-2">Ready to settle the debate?</p>
           <p className="text-muted text-sm mb-6">
             Covering legends from all eras — Russell to LeBron to Shai.
           </p>
           <Link
             to="/questions"
-            className="inline-block bg-sky hover:bg-sky-dark text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm"
+            className="inline-block bg-purple-subtle border border-purple text-purple hover:bg-purple hover:text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm"
           >
             Build My Rankings
           </Link>

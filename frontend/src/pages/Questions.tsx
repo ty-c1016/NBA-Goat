@@ -8,22 +8,22 @@ import { submitPreferences } from '../api/client';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const CATEGORIES = [
-  { key: 'offensive_weight', label: 'Offensive Skills', color: '#C9082A' },
-  { key: 'defensive_weight', label: 'Defensive Skills', color: '#17408B' },
-  { key: 'team_success_weight', label: 'Team Success', color: '#FFD700' },
-  { key: 'longevity_weight', label: 'Career Longevity', color: '#4ECDC4' },
-  { key: 'efficiency_weight', label: 'Statistical Efficiency', color: '#95E1D3' },
-  { key: 'peak_performance_weight', label: 'Peak Performance', color: '#F38181' },
+  { key: 'offensive_weight',      label: 'Offensive Skills',        color: '#7B5EA7' },
+  { key: 'defensive_weight',      label: 'Defensive Skills',        color: '#72B8D8' },
+  { key: 'team_success_weight',   label: 'Team Success',            color: '#5B3F87' },
+  { key: 'longevity_weight',      label: 'Career Longevity',        color: '#4A96BA' },
+  { key: 'efficiency_weight',     label: 'Statistical Efficiency',  color: '#B39DCC' },
+  { key: 'peak_performance_weight', label: 'Peak Performance',      color: '#BDE0F0' },
 ] as const;
 
 type WeightKey = (typeof CATEGORIES)[number]['key'];
 
 const DEFAULT_WEIGHTS: Record<WeightKey, number> = {
-  offensive_weight: 17,
-  defensive_weight: 17,
-  team_success_weight: 17,
-  longevity_weight: 17,
-  efficiency_weight: 16,
+  offensive_weight:       17,
+  defensive_weight:       17,
+  team_success_weight:    17,
+  longevity_weight:       17,
+  efficiency_weight:      16,
   peak_performance_weight: 16,
 };
 
@@ -37,42 +37,34 @@ export default function Questions() {
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
   const isValid = total === 100;
 
-  // Adjust last slider so total always stays at 100
-  const handleSliderChange = useCallback(
-    (changedKey: WeightKey, newValue: number) => {
-      setWeights((prev) => {
-        const otherKeys = CATEGORIES.map((c) => c.key).filter((k) => k !== changedKey);
-        const otherTotal = otherKeys.reduce((s, k) => s + prev[k], 0);
-        const remaining = 100 - newValue;
+  const handleSliderChange = useCallback((changedKey: WeightKey, newValue: number) => {
+    setWeights((prev) => {
+      const otherKeys = CATEGORIES.map((c) => c.key).filter((k) => k !== changedKey);
+      const otherTotal = otherKeys.reduce((s, k) => s + prev[k], 0);
+      const remaining = 100 - newValue;
 
-        if (otherTotal === 0) {
-          // Distribute equally among others
-          const share = Math.floor(remaining / otherKeys.length);
-          const extra = remaining - share * otherKeys.length;
-          const updated: Record<WeightKey, number> = { ...prev, [changedKey]: newValue };
-          otherKeys.forEach((k, i) => {
-            updated[k] = share + (i === 0 ? extra : 0);
-          });
-          return updated;
-        }
-
-        // Scale others proportionally
+      if (otherTotal === 0) {
+        const share = Math.floor(remaining / otherKeys.length);
+        const extra = remaining - share * otherKeys.length;
         const updated: Record<WeightKey, number> = { ...prev, [changedKey]: newValue };
-        let allocated = 0;
-        otherKeys.forEach((k, i) => {
-          if (i < otherKeys.length - 1) {
-            const scaled = Math.round((prev[k] / otherTotal) * remaining);
-            updated[k] = scaled;
-            allocated += scaled;
-          } else {
-            updated[k] = remaining - allocated;
-          }
-        });
+        otherKeys.forEach((k, i) => { updated[k] = share + (i === 0 ? extra : 0); });
         return updated;
+      }
+
+      const updated: Record<WeightKey, number> = { ...prev, [changedKey]: newValue };
+      let allocated = 0;
+      otherKeys.forEach((k, i) => {
+        if (i < otherKeys.length - 1) {
+          const scaled = Math.round((prev[k] / otherTotal) * remaining);
+          updated[k] = scaled;
+          allocated += scaled;
+        } else {
+          updated[k] = remaining - allocated;
+        }
       });
-    },
-    []
-  );
+      return updated;
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -80,13 +72,13 @@ export default function Questions() {
     setError(null);
     try {
       const prefs: Preferences = {
-        offensive_weight: weights.offensive_weight / 100,
-        defensive_weight: weights.defensive_weight / 100,
-        longevity_weight: weights.longevity_weight / 100,
-        team_success_weight: weights.team_success_weight / 100,
-        efficiency_weight: weights.efficiency_weight / 100,
+        offensive_weight:        weights.offensive_weight / 100,
+        defensive_weight:        weights.defensive_weight / 100,
+        longevity_weight:        weights.longevity_weight / 100,
+        team_success_weight:     weights.team_success_weight / 100,
+        efficiency_weight:       weights.efficiency_weight / 100,
         peak_performance_weight: weights.peak_performance_weight / 100,
-        era_preference: era,
+        era_preference:          era,
       };
       const result = await submitPreferences(prefs);
       navigate(`/results/${result.session_id}`, {
@@ -101,35 +93,30 @@ export default function Questions() {
 
   const chartData = {
     labels: CATEGORIES.map((c) => c.label),
-    datasets: [
-      {
-        data: CATEGORIES.map((c) => weights[c.key]),
-        backgroundColor: CATEGORIES.map((c) => c.color),
-        borderWidth: 2,
-        borderColor: '#111827',
-      },
-    ],
+    datasets: [{
+      data: CATEGORIES.map((c) => weights[c.key]),
+      backgroundColor: CATEGORIES.map((c) => c.color),
+      borderWidth: 2,
+      borderColor: '#FFFFFF',
+    }],
   };
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen bg-canvas py-12 px-4">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-2">Set Your Preferences</h1>
-        <p className="text-gray-400 text-center mb-10">
-          Adjust the sliders so they add up to 100%. Each category influences your final rankings.
+        <h1 className="text-3xl font-bold text-center text-ink mb-2">Set Your Preferences</h1>
+        <p className="text-muted text-center text-sm mb-10">
+          Adjust the sliders — they auto-balance to 100%. Each category influences your final rankings.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Sliders */}
-          <div className="space-y-6">
+          <div className="bg-surface border border-rim rounded-2xl p-6 shadow-sm space-y-5">
             {CATEGORIES.map((cat) => (
               <div key={cat.key}>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-sm font-medium text-gray-200">{cat.label}</label>
-                  <span
-                    className="text-sm font-bold tabular-nums"
-                    style={{ color: cat.color }}
-                  >
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-sm font-medium text-ink">{cat.label}</label>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: cat.color }}>
                     {weights[cat.key]}%
                   </span>
                 </div>
@@ -139,7 +126,7 @@ export default function Questions() {
                   max={100}
                   value={weights[cat.key]}
                   onChange={(e) => handleSliderChange(cat.key, Number(e.target.value))}
-                  className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-700"
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                   style={{ accentColor: cat.color }}
                 />
               </div>
@@ -147,11 +134,11 @@ export default function Questions() {
 
             {/* Era selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">Era Preference</label>
+              <label className="block text-sm font-medium text-ink mb-1.5">Era Preference</label>
               <select
                 value={era}
                 onChange={(e) => setEra(e.target.value as Preferences['era_preference'])}
-                className="w-full bg-gray-800 border border-gray-700 text-gray-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-nba-blue"
+                className="w-full bg-canvas border border-rim text-ink text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-purple"
               >
                 <option value="any">All Eras</option>
                 <option value="modern">Modern (1980+)</option>
@@ -160,19 +147,20 @@ export default function Questions() {
             </div>
 
             {/* Total indicator */}
-            <div
-              className={`flex justify-between text-sm font-semibold px-3 py-2 rounded-lg ${
-                isValid
-                  ? 'bg-green-900/40 text-green-400 border border-green-800'
-                  : 'bg-red-900/40 text-red-400 border border-red-800'
-              }`}
-            >
+            <div className={`flex justify-between text-sm font-semibold px-3 py-2 rounded-lg border ${
+              isValid
+                ? 'bg-sky-subtle text-sky-dark border-sky-light'
+                : 'bg-red-50 text-red-600 border-red-200'
+            }`}>
               <span>Total</span>
-              <span>{total}% {isValid ? '✓' : `(need ${100 - total > 0 ? '+' : ''}${100 - total} more)`}</span>
+              <span>
+                {total}%{' '}
+                {isValid ? '✓' : `(${100 - total > 0 ? '+' : ''}${100 - total} needed)`}
+              </span>
             </div>
 
             {error && (
-              <p className="text-red-400 text-sm bg-red-900/30 border border-red-800 rounded-lg px-3 py-2">
+              <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -180,7 +168,7 @@ export default function Questions() {
             <button
               onClick={handleSubmit}
               disabled={!isValid || loading}
-              className="w-full bg-nba-red hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-colors text-base"
+              className="w-full bg-purple hover:bg-purple-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors text-base shadow-sm"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -197,7 +185,7 @@ export default function Questions() {
           </div>
 
           {/* Pie chart */}
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center bg-surface border border-rim rounded-2xl p-6 shadow-sm">
             <div className="w-72 h-72">
               <Pie
                 data={chartData}
@@ -205,16 +193,18 @@ export default function Questions() {
                   plugins: {
                     legend: {
                       position: 'bottom',
-                      labels: { color: '#9CA3AF', font: { size: 11 }, padding: 12 },
+                      labels: {
+                        color: '#6B6680',
+                        font: { size: 11 },
+                        padding: 12,
+                      },
                     },
                   },
                   animation: { duration: 200 },
                 }}
               />
             </div>
-            <p className="text-gray-500 text-xs mt-4 text-center">
-              Your preference breakdown
-            </p>
+            <p className="text-muted text-xs mt-4 text-center">Your preference breakdown</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,8 @@
 
 @layer base {
   body {
-    @apply bg-bg text-ink font-sans;
+    background-color: #F7F6F3;
+    color: #1E1B2E;
+    font-family: Inter, system-ui, sans-serif;
   }
 }

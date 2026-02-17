@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#F7F6F3',
+        canvas: '#F7F6F3',
         surface: '#FFFFFF',
-        border: '#E8E3F0',
+        rim: '#E8E3F0',
         ink: '#1E1B2E',
         muted: '#6B6680',
         purple: {

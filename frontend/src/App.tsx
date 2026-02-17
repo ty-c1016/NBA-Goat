@@ -17,7 +17,7 @@ export default function App() {
             <Route path="*" element={<Home />} />
           </Routes>
         </main>
-        <footer className="text-center text-gray-600 text-xs py-6 border-t border-gray-800">
+        <footer className="text-center text-muted text-xs py-6 border-t border-rim bg-surface">
           NBA GOAT Ranker — Data-driven, preference-powered.
         </footer>
       </div>

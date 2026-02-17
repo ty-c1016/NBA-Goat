@@ -1,24 +1,22 @@
 """Flask application entrypoint.
 
 This module wires up the Flask app, initializes extensions, and defines routes for:
-- `GET /` home page
-- `GET /questions` questionnaire to capture user preferences
-- `POST /submit_preferences` processing preferences and persisting a `UserSession`
-- `GET /results/<session_id>` showing personalized rankings
+- `GET /` serves the React SPA (production) or legacy template (development)
+- `POST /api/submit_preferences` JSON API for preference submission and ranking
 - `GET /api/players` and `GET /api/player/<id>` lightweight JSON APIs
 
 The ranking logic is implemented in `calculate_player_rankings`, which applies a
 simple weighted scoring across player statistics and achievements.
 """
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from models import db, migrate, Player, CareerStats, AdvancedStats, Achievement, UserSession, SeasonStats
 from config import Config
 import uuid
 import os
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='static')
     app.config.from_object(Config)
 
     # Initialize extensions
@@ -29,25 +27,31 @@ def create_app():
 
 app = create_app()
 
-@app.route('/')
-def index():
-    """Main page with the questionnaire"""
+REACT_BUILD = os.path.join(os.path.dirname(__file__), 'static', 'dist')
+
+def _serve_react():
+    """Serve the React SPA index.html if the build exists."""
+    index_path = os.path.join(REACT_BUILD, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(REACT_BUILD, 'index.html')
+    # Fallback to legacy Jinja2 template during development
     return render_template('index.html')
 
+@app.route('/')
+def index():
+    return _serve_react()
+
+# Catch-all: let React Router handle client-side routes
 @app.route('/questions')
-def questions():
-    """Display the questionnaire"""
-    # Generate a unique session ID
-    if 'session_id' not in session:
-        session['session_id'] = str(uuid.uuid4())
+@app.route('/results/<path:subpath>')
+def spa_routes(subpath=''):
+    return _serve_react()
 
-    return render_template('questions.html')
-
+# Legacy form-based endpoint kept for backwards compatibility
 @app.route('/submit_preferences', methods=['POST'])
 def submit_preferences():
-    """Process user preferences and calculate rankings"""
+    """Legacy form-based preferences submission (redirects to results template)."""
     try:
-        # Get user preferences from form
         preferences = {
             'offensive_weight': float(request.form.get('offensive_weight', 0.5)),
             'defensive_weight': float(request.form.get('defensive_weight', 0.5)),
@@ -58,8 +62,50 @@ def submit_preferences():
             'era_preference': request.form.get('era_preference', 'any')
         }
 
-        # Always create a new session for each ranking calculation
-        # This ensures each preference submission gets a unique results URL
+        new_session_id = str(uuid.uuid4())
+        user_session = UserSession(
+            session_id=new_session_id,
+            **preferences,
+            ip_address=request.remote_addr
+        )
+        db.session.add(user_session)
+        session['session_id'] = new_session_id
+
+        ranked_players = calculate_player_rankings(preferences)
+        user_session.set_ranked_players(ranked_players)
+        user_session.completed_at = db.func.now()
+        db.session.commit()
+
+        return redirect(url_for('results_legacy', session_id=user_session.session_id))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/results_legacy/<session_id>')
+def results_legacy(session_id):
+    """Legacy Jinja2 results page."""
+    user_session = UserSession.query.filter_by(session_id=session_id).first()
+    if not user_session:
+        return redirect(url_for('index'))
+    ranked_players = user_session.get_ranked_players()
+    return render_template('results.html', players=ranked_players, session=user_session)
+
+# ── JSON API ──────────────────────────────────────────────────────────────────
+
+@app.route('/api/submit_preferences', methods=['POST'])
+def api_submit_preferences():
+    """JSON API: submit preferences and return ranked players."""
+    try:
+        data = request.get_json(force=True)
+        preferences = {
+            'offensive_weight': float(data.get('offensive_weight', 0.5)),
+            'defensive_weight': float(data.get('defensive_weight', 0.5)),
+            'longevity_weight': float(data.get('longevity_weight', 0.5)),
+            'team_success_weight': float(data.get('team_success_weight', 0.5)),
+            'efficiency_weight': float(data.get('efficiency_weight', 0.5)),
+            'peak_performance_weight': float(data.get('peak_performance_weight', 0.5)),
+            'era_preference': data.get('era_preference', 'any')
+        }
+
         new_session_id = str(uuid.uuid4())
         user_session = UserSession(
             session_id=new_session_id,
@@ -68,30 +114,18 @@ def submit_preferences():
         )
         db.session.add(user_session)
 
-        # Update the Flask session to track the new session
-        session['session_id'] = new_session_id
-
-        # Calculate rankings based on preferences
         ranked_players = calculate_player_rankings(preferences)
         user_session.set_ranked_players(ranked_players)
         user_session.completed_at = db.func.now()
-
         db.session.commit()
 
-        return redirect(url_for('results', session_id=user_session.session_id))
+        return jsonify({
+            'session_id': new_session_id,
+            'ranked_players': ranked_players
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/results/<session_id>')
-def results(session_id):
-    """Display the ranked results"""
-    user_session = UserSession.query.filter_by(session_id=session_id).first()
-    if not user_session:
-        return redirect(url_for('index'))
-
-    ranked_players = user_session.get_ranked_players()
-    return render_template('results.html', players=ranked_players, session=user_session)
 
 @app.route('/api/players')
 def api_players():

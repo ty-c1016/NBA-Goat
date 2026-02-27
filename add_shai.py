@@ -1,4 +1,4 @@
-"""Script to add Shai Gilgeous-Alexander to the database with his stats."""
+"""We Adding Shai indivuidually cus he's Shai"""
 
 from app import app, db
 from models import Player, CareerStats, AdvancedStats, Achievement

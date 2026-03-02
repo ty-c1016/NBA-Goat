@@ -1,157 +1,98 @@
 #!/usr/bin/env python3
-"""Add missing legendary players: Hakeem, Moses, Oscar, Wade, West, Westbrook, Isiah"""
+"""Add missing legendary players: Hakeem, Moses, Oscar, Wade, West, Westbrook, Isiah."""
 
 import sys
 import os
+import time
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pandas as pd
 from app import create_app
 from models import db, Player, CareerStats, Achievement
 from nba_api.stats.endpoints import playercareerstats, commonplayerinfo
-import time
 
-# Manual achievement data for players
 PLAYER_DATA = {
     'Hakeem Olajuwon': {
         'nba_id': 165,
-        'scoring_titles': 0,
-        'mvp_awards': 1,      # 1994
-        'championships': 2,   # 1994, 1995
-        'finals_mvp': 2,      # 1994, 1995
-        'finals_appearances': 3,  # 1986, 1994, 1995
-        'all_star': 12,
-        'all_nba_1st': 6,
-        'all_nba_2nd': 3,
-        'all_nba_3rd': 3,
-        'seasons_30ppg': 0,
-        'dominant_championships': 2  # Clear leader on both titles
+        'scoring_titles': 0, 'mvp_awards': 1, 'championships': 2,
+        'finals_mvp': 2, 'finals_appearances': 3, 'all_star': 12,
+        'all_nba_1st': 6, 'all_nba_2nd': 3, 'all_nba_3rd': 3,
+        'seasons_30ppg': 0, 'dominant_championships': 2
     },
     'Moses Malone': {
         'nba_id': 77449,
-        'scoring_titles': 0,
-        'mvp_awards': 3,      # 1979, 1982, 1983
-        'championships': 1,   # 1983
-        'finals_mvp': 1,      # 1983
-        'finals_appearances': 2,  # 1981, 1983
-        'all_star': 13,
-        'all_nba_1st': 4,
-        'all_nba_2nd': 4,
-        'all_nba_3rd': 1,
-        'seasons_30ppg': 1,
-        'dominant_championships': 1  # 1983 76ers
+        'scoring_titles': 0, 'mvp_awards': 3, 'championships': 1,
+        'finals_mvp': 1, 'finals_appearances': 2, 'all_star': 13,
+        'all_nba_1st': 4, 'all_nba_2nd': 4, 'all_nba_3rd': 1,
+        'seasons_30ppg': 1, 'dominant_championships': 1
     },
     'Oscar Robertson': {
         'nba_id': 600015,
-        'scoring_titles': 1,  # 1968
-        'mvp_awards': 1,      # 1964
-        'championships': 1,   # 1971
-        'finals_mvp': 0,      # Award didn't exist
-        'finals_appearances': 1,  # 1971
-        'all_star': 12,
-        'all_nba_1st': 9,
-        'all_nba_2nd': 2,
-        'all_nba_3rd': 0,
-        'seasons_30ppg': 6,
-        'dominant_championships': 0  # Secondary to Kareem in 1971
+        'scoring_titles': 1, 'mvp_awards': 1, 'championships': 1,
+        'finals_mvp': 0, 'finals_appearances': 1, 'all_star': 12,
+        'all_nba_1st': 9, 'all_nba_2nd': 2, 'all_nba_3rd': 0,
+        'seasons_30ppg': 6, 'dominant_championships': 0
     },
     'Dwyane Wade': {
         'nba_id': 2548,
-        'scoring_titles': 1,  # 2009
-        'mvp_awards': 0,
-        'championships': 3,   # 2006, 2012, 2013
-        'finals_mvp': 1,      # 2006
-        'finals_appearances': 5,  # 2006, 2011, 2012, 2013, 2014
-        'all_star': 13,
-        'all_nba_1st': 2,
-        'all_nba_2nd': 3,
-        'all_nba_3rd': 3,
-        'seasons_30ppg': 1,
-        'dominant_championships': 1  # 2006 (LeBron era = 0.4 weight each)
+        'scoring_titles': 1, 'mvp_awards': 0, 'championships': 3,
+        'finals_mvp': 1, 'finals_appearances': 5, 'all_star': 13,
+        'all_nba_1st': 2, 'all_nba_2nd': 3, 'all_nba_3rd': 3,
+        'seasons_30ppg': 1, 'dominant_championships': 1
     },
     'Jerry West': {
         'nba_id': 78497,
-        'scoring_titles': 1,  # 1970
-        'mvp_awards': 0,
-        'championships': 1,   # 1972
-        'finals_mvp': 1,      # 1969 (only time given to losing team)
-        'finals_appearances': 9,  # 1962-70, 1972, 1973
-        'all_star': 14,
-        'all_nba_1st': 10,
-        'all_nba_2nd': 2,
-        'all_nba_3rd': 0,
-        'seasons_30ppg': 4,
-        'dominant_championships': 0  # Not the clear leader in 1972
+        'scoring_titles': 1, 'mvp_awards': 0, 'championships': 1,
+        'finals_mvp': 1, 'finals_appearances': 9, 'all_star': 14,
+        'all_nba_1st': 10, 'all_nba_2nd': 2, 'all_nba_3rd': 0,
+        'seasons_30ppg': 4, 'dominant_championships': 0
     },
     'Russell Westbrook': {
         'nba_id': 201566,
-        'scoring_titles': 2,  # 2015, 2017
-        'mvp_awards': 1,      # 2017
-        'championships': 0,
-        'finals_mvp': 0,
-        'finals_appearances': 1,  # 2012
-        'all_star': 9,
-        'all_nba_1st': 2,
-        'all_nba_2nd': 5,
-        'all_nba_3rd': 2,
-        'seasons_30ppg': 2,
-        'dominant_championships': 0
+        'scoring_titles': 2, 'mvp_awards': 1, 'championships': 0,
+        'finals_mvp': 0, 'finals_appearances': 1, 'all_star': 9,
+        'all_nba_1st': 2, 'all_nba_2nd': 5, 'all_nba_3rd': 2,
+        'seasons_30ppg': 2, 'dominant_championships': 0
     },
     'Isiah Thomas': {
         'nba_id': 78318,
-        'scoring_titles': 0,
-        'mvp_awards': 0,
-        'championships': 2,   # 1989, 1990
-        'finals_mvp': 1,      # 1990
-        'finals_appearances': 3,  # 1988, 1989, 1990
-        'all_star': 12,
-        'all_nba_1st': 3,
-        'all_nba_2nd': 2,
-        'all_nba_3rd': 0,
-        'seasons_30ppg': 0,
-        'dominant_championships': 2  # Leader of Bad Boy Pistons
+        'scoring_titles': 0, 'mvp_awards': 0, 'championships': 2,
+        'finals_mvp': 1, 'finals_appearances': 3, 'all_star': 12,
+        'all_nba_1st': 3, 'all_nba_2nd': 2, 'all_nba_3rd': 0,
+        'seasons_30ppg': 0, 'dominant_championships': 2
     }
 }
 
-def add_legends():
-    """Add missing legendary players to database"""
-    app = create_app()
 
+def add_legends():
+    app = create_app()
     with app.app_context():
         for player_name, data in PLAYER_DATA.items():
             try:
-                # Check if player already exists
                 existing = Player.query.filter(Player.full_name.like(f'%{player_name}%')).first()
                 if existing:
                     print(f'✓ {player_name} already exists (ID: {existing.id})')
                     continue
 
                 print(f'Adding {player_name}...')
-
-                # Fetch from NBA API
                 time.sleep(0.6)
                 player_id = data['nba_id']
 
-                # Get player info
                 info = commonplayerinfo.CommonPlayerInfo(player_id=player_id)
                 info_df = info.get_data_frames()[0]
-
                 if len(info_df) == 0:
                     print(f'✗ Could not fetch info for {player_name}')
                     continue
-
                 info_row = info_df.iloc[0]
 
-                # Get career stats
                 career = playercareerstats.PlayerCareerStats(player_id=player_id, per_mode36='PerGame')
-                career_totals = career.get_data_frames()[1]  # Career totals
-
+                career_totals = career.get_data_frames()[1]
                 if len(career_totals) == 0:
                     print(f'✗ Could not fetch career stats for {player_name}')
                     continue
-
                 totals = career_totals.iloc[0]
 
-                # Create Player
                 player = Player(
                     nba_id=player_id,
                     full_name=info_row['DISPLAY_FIRST_LAST'],
@@ -167,8 +108,7 @@ def add_legends():
                 db.session.add(player)
                 db.session.flush()
 
-                # Create CareerStats
-                career_stats = CareerStats(
+                db.session.add(CareerStats(
                     player_id=player.id,
                     games_played=int(totals['GP']) if totals['GP'] else 0,
                     points_per_game=float(totals['PTS']) if totals['PTS'] else 0.0,
@@ -178,11 +118,9 @@ def add_legends():
                     blocks_per_game=float(totals['BLK']) if totals['BLK'] else 0.0,
                     field_goal_percentage=float(totals['FG_PCT']) if totals['FG_PCT'] else 0.0,
                     total_points=int(float(totals['PTS']) * int(totals['GP'])) if totals['PTS'] and totals['GP'] else 0
-                )
-                db.session.add(career_stats)
+                ))
 
-                # Create Achievements
-                achievements = Achievement(
+                db.session.add(Achievement(
                     player_id=player.id,
                     scoring_titles=data['scoring_titles'],
                     mvp_awards=data['mvp_awards'],
@@ -196,20 +134,17 @@ def add_legends():
                     seasons_30ppg=data['seasons_30ppg'],
                     dominant_championships=data['dominant_championships'],
                     hall_of_fame=True
-                )
-                db.session.add(achievements)
+                ))
 
                 db.session.commit()
-                print(f'✓ Added {player.full_name}')
-                print(f'  {data["championships"]} Championships, {data["mvp_awards"]} MVPs, {data["all_star"]} All-Stars')
+                print(f'✓ Added {player.full_name}: {data["championships"]} rings, {data["mvp_awards"]} MVPs')
 
             except Exception as e:
                 print(f'✗ Error adding {player_name}: {e}')
                 db.session.rollback()
-                continue
 
         print('\n✓ Done!')
 
+
 if __name__ == '__main__':
-    import pandas as pd
     add_legends()

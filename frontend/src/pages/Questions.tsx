@@ -40,6 +40,7 @@ export default function Questions() {
   const handleSliderChange = useCallback((changedKey: WeightKey, newValue: number) => {
     setWeights((prev) => {
       const otherKeys = CATEGORIES.map((c) => c.key).filter((k) => k !== changedKey);
+      newValue = Math.max(0, Math.min(100, newValue));
       const otherTotal = otherKeys.reduce((s, k) => s + prev[k], 0);
       const remaining = 100 - newValue;
 
@@ -55,11 +56,11 @@ export default function Questions() {
       let allocated = 0;
       otherKeys.forEach((k, i) => {
         if (i < otherKeys.length - 1) {
-          const scaled = Math.round((prev[k] / otherTotal) * remaining);
+          const scaled = Math.max(0, Math.round((prev[k] / otherTotal) * remaining));
           updated[k] = scaled;
           allocated += scaled;
         } else {
-          updated[k] = remaining - allocated;
+          updated[k] = Math.max(0, remaining - allocated);
         }
       });
       return updated;

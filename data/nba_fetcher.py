@@ -1,8 +1,4 @@
-"""NBA API data fetching utilities.
-
-Encapsulates calls to `nba_api` for player lists, career stats, and awards.
-Includes sample data and helpers for development without external API calls.
-"""
+"""NBA API data fetching utilities."""
 
 import requests
 import pandas as pd
@@ -11,8 +7,8 @@ from nba_api.stats.endpoints import commonallplayers, playercareerstats, playera
 from nba_api.stats.static import players
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class NBADataFetcher:
     def __init__(self):
@@ -22,30 +18,24 @@ class NBADataFetcher:
         })
 
     def get_all_players(self):
-        """Get basic information for all NBA players"""
         try:
-            logger.info("Fetching all players...")
-            all_players = players.get_players()
-            logger.info(f"Retrieved {len(all_players)} players")
-            return all_players
+            return players.get_players()
         except Exception as e:
             logger.error(f"Error fetching players: {e}")
             return []
 
     def get_player_career_stats(self, player_id):
-        """Get career statistics for a specific player"""
         try:
-            time.sleep(0.6)  # Rate limiting
+            time.sleep(0.6)
             career_stats = playercareerstats.PlayerCareerStats(player_id=player_id)
-            return career_stats.get_data_frames()[0]  # Career totals regular season
+            return career_stats.get_data_frames()[0]
         except Exception as e:
             logger.error(f"Error fetching career stats for player {player_id}: {e}")
             return None
 
     def get_player_awards(self, player_id):
-        """Get awards and achievements for a specific player"""
         try:
-            time.sleep(0.6)  # Rate limiting
+            time.sleep(0.6)
             awards = playerawards.PlayerAwards(player_id=player_id)
             return awards.get_data_frames()[0]
         except Exception as e:
@@ -53,7 +43,6 @@ class NBADataFetcher:
             return None
 
     def get_active_players(self):
-        """Get list of currently active players"""
         try:
             active_players = commonallplayers.CommonAllPlayers(is_only_current_season=1)
             return active_players.get_data_frames()[0]
@@ -62,7 +51,6 @@ class NBADataFetcher:
             return pd.DataFrame()
 
     def get_historical_players(self):
-        """Get list of historical players"""
         try:
             all_players = commonallplayers.CommonAllPlayers(is_only_current_season=0)
             return all_players.get_data_frames()[0]
@@ -70,7 +58,7 @@ class NBADataFetcher:
             logger.error(f"Error fetching historical players: {e}")
             return pd.DataFrame()
 
-# Sample data for testing without API calls
+
 SAMPLE_PLAYERS_DATA = [
     {
         'id': 2544, 'full_name': 'LeBron James', 'first_name': 'LeBron', 'last_name': 'James',
@@ -139,6 +127,6 @@ SAMPLE_PLAYERS_DATA = [
     }
 ]
 
+
 def get_sample_data():
-    """Returns sample data for testing purposes"""
     return SAMPLE_PLAYERS_DATA

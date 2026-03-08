@@ -65,22 +65,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      {/* CTA */}
-      <section className="text-center pb-24 px-4">
-        <div className="bg-surface border border-rim rounded-2xl max-w-xl mx-auto py-10 px-8 shadow-sm">
-          <p className="text-ink font-semibold text-lg mb-2">Ready to settle the debate?</p>
-          <p className="text-muted text-sm mb-6">
-            Covering legends from all eras — Russell to LeBron to Shai.
-          </p>
-          <Link
-            to="/questions"
-            className="inline-block bg-purple-subtle border border-purple text-purple hover:bg-purple hover:text-white font-semibold px-8 py-3 rounded-xl transition-colors shadow-sm"
-          >
-            Build My Rankings
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

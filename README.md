@@ -1,66 +1,77 @@
-# NBA GOAT Analyzer
+# Goat Simulator
 
-A web application that determines NBA player greatness rankings based on user preferences. Users answer questions about what they value most in basketball greatness (offense, defense, championships, longevity, etc.), and the system returns a personalized ranking of the top 100 NBA players.
+A web application that determines NBA player greatness rankings based on user preferences. Users adjust sliders for what they value most in basketball greatness (offense, defense, championships, longevity, etc.), and the system returns a personalized ranking of the top 100 NBA players.
 
 ## Features
 
-- **Interactive Questionnaire**: Adjustable sliders for different aspects of greatness
+- **Interactive Questionnaire**: Auto-balancing sliders (always sum to 100%) for different aspects of greatness
 - **Personalized Rankings**: Custom algorithm weights player stats based on user preferences
 - **Comprehensive Database**: Player statistics, achievements, and career data
 - **RESTful API**: JSON endpoints for player data and rankings
-- **Responsive Design**: Bootstrap-powered UI that works on all devices
+- **React Frontend**: TypeScript + Vite + Tailwind CSS
 
 ## Technology Stack
 
-- **Backend**: Flask + SQLAlchemy + PostgreSQL/SQLite
-- **Data Source**: NBA API (nba_api Python wrapper)
-- **Frontend**: HTML/CSS/JavaScript + Bootstrap 5
-- **Database**: PostgreSQL (production) / SQLite (development)
+- **Backend**: Flask + SQLAlchemy + SQLite (dev) / PostgreSQL (prod)
+- **Data Source**: NBA API (`nba_api` Python wrapper)
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Database**: SQLite (development) / PostgreSQL (production)
 
 ## Project Structure
 
 ```
-NBA_goat/
-├── app.py                 # Main Flask application
-├── config.py              # Database and app configuration
-├── requirements.txt       # Python dependencies
-├── .env                   # Environment variables (not committed)
+NBA-Goat/
+├── app.py                        # Flask app, routes, ranking algorithm
+├── config.py                     # Database and app configuration
+├── requirements.txt              # Python dependencies
+├── .env                          # Environment variables (not committed)
 ├── models/
-│   ├── __init__.py        # Database initialization
-│   ├── player.py          # Player model
-│   ├── stats.py           # Statistics models
-│   ├── achievements.py    # Achievements model
-│   └── user_session.py    # User session tracking
+│   ├── __init__.py               # Database initialization
+│   ├── player.py                 # Player model
+│   ├── stats.py                  # Career and season stats models
+│   ├── achievements.py           # Achievements model
+│   └── user_session.py           # User session tracking
 ├── data/
-│   ├── nba_fetcher.py     # NBA API data fetching
-│   └── populate_db.py     # Database population script
-├── templates/
-│   ├── base.html          # Base template
-│   ├── index.html         # Homepage
-│   ├── questions.html     # Questionnaire
-│   └── results.html       # Results display
-└── static/
-    ├── css/style.css      # Custom styles
-    └── js/app.js          # Interactive features
+│   ├── nba_fetcher.py            # NBA API wrapper + sample data
+│   ├── populate_db.py            # Seed database (sample or API mode)
+│   ├── populate_season_stats.py  # Fetch season-by-season stats
+│   ├── update_all_nba.py         # Update All-NBA / All-Defensive / scoring titles
+│   ├── update_positions.py       # Update position, height, weight data
+│   ├── update_30ppg_seasons.py   # Update 30+ PPG season counts
+│   ├── update_finals_mvps.py     # Update Finals MVP counts
+│   ├── update_dominant_championships.py  # Update dominant championship counts
+│   ├── update_scoring_titles.py  # Update scoring title counts
+│   ├── add_missing_legends.py    # Add Harden, Bill Russell, Dirk, Shaq
+│   └── add_legends_batch.py      # Add Hakeem, Moses, Oscar, Wade, West, Westbrook, Isiah
+├── frontend/                     # React + TypeScript frontend (Goat Simulator)
+│   ├── src/
+│   │   ├── api/client.ts         # API calls
+│   │   ├── pages/                # Questions, Results, Home
+│   │   ├── components/           # Navbar
+│   │   └── types/                # TypeScript types
+│   ├── vite.config.ts            # Vite config (proxies /api to Flask on :5001)
+│   └── package.json
+├── templates/                    # Legacy Jinja2 templates (fallback)
+└── static/                       # Legacy static assets + React build output (dist/)
 ```
 
 ## Architecture Overview
 
-- **Flask app (`app.py`)**: Defines routes for UI pages and JSON APIs. Uses `calculate_player_rankings()` for a simple weighted scoring of players based on user preferences.
-- **Models (`models/`)**: SQLAlchemy models for players, stats, achievements, and user sessions. `models/__init__.py` initializes `db` and `migrate`.
-- **Data layer (`data/`)**: `nba_fetcher.py` wraps `nba_api` calls and provides sample data; `populate_db.py` seeds the database using either sample data or real API data.
-- **Templates (`templates/`)**: Jinja templates for base layout, questionnaire, and results.
-- **Static assets (`static/`)**: CSS and JS that enhance UI interactions.
+- **Flask app (`app.py`)**: JSON API at `/api/*` for the React frontend, plus legacy Jinja2 routes for backwards compatibility. `calculate_player_rankings()` applies weighted, percentile-normalized scoring across all player stats.
+- **Models (`models/`)**: SQLAlchemy models for players, career stats, season stats, achievements, and user sessions.
+- **Data layer (`data/`)**: `nba_fetcher.py` wraps `nba_api`; `populate_db.py` seeds the DB. The `update_*` and `add_*` scripts patch specific fields after initial population.
+- **Frontend (`frontend/`)**: React SPA served by Vite in development (proxied to Flask on port 5001). Built output goes to `static/dist/` for production.
 
 ## Data Flow
 
-1. User visits `/questions` and submits preference weights.
-2. `POST /submit_preferences` stores a `UserSession` and computes rankings via `calculate_player_rankings()`.
-3. The results are saved to the session record and displayed at `/results/<session_id>`.
-4. Data in the DB is populated via `data/populate_db.py` using either sample fixtures or the NBA API wrapper.
+1. User visits `/questions` and adjusts preference sliders (auto-balance to 100%).
+2. `POST /api/submit_preferences` computes rankings via `calculate_player_rankings()` and stores a `UserSession`.
+3. Results are returned as JSON and displayed by the React frontend at `/results/<session_id>`.
+4. The DB is seeded via `data/populate_db.py` and patched with the `update_*` / `add_*` scripts.
 
 ## Local Development Quickstart
 
+**Backend:**
 ```bash
 python3 -m venv nba_env
 source nba_env/bin/activate
@@ -69,42 +80,38 @@ pip install -r requirements.txt
 # Seed sample data
 python data/populate_db.py --mode sample
 
-# Run the app
+# Run Flask on port 5001
 python app.py
 ```
 
-App runs at `http://localhost:5000`.
+**Frontend (separate terminal):**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs at `http://localhost:5173` and proxies `/api` requests to Flask on port 5001.
 
 ## Setup Instructions
 
 ### 1. Environment Setup
 
 ```bash
-# Clone/navigate to project directory
-cd NBA_goat
-
-# Create virtual environment
 python3 -m venv nba_env
-
-# Activate virtual environment
-source nba_env/bin/activate  # On macOS/Linux
-# nba_env\Scripts\activate   # On Windows
-
-# Install dependencies
+source nba_env/bin/activate   # macOS/Linux
+# nba_env\Scripts\activate    # Windows
 pip install -r requirements.txt
 ```
 
 ### 2. Database Configuration
 
-The application supports both PostgreSQL (recommended for production) and SQLite (for development).
+#### SQLite (Development)
+No setup needed — the app creates `instance/nba_goat.db` automatically.
 
-#### For SQLite (Development)
-No additional setup required. The app will create `nba_goat.db` automatically.
-
-#### For PostgreSQL (Production)
-1. Install PostgreSQL
-2. Create database: `createdb nba_goat`
-3. Update `.env` file with your database credentials:
+#### PostgreSQL (Production)
+1. Install PostgreSQL and create the database: `createdb nba_goat`
+2. Set `DATABASE_URL` in `.env`:
 
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/nba_goat
@@ -113,113 +120,80 @@ DATABASE_URL=postgresql://username:password@localhost:5432/nba_goat
 ### 3. Populate Database
 
 ```bash
-# Populate with sample data (for quick testing)
+# Quick sample data (5 players, for testing)
 python data/populate_db.py --mode sample
 
-# OR populate with real NBA API data (takes longer)
+# Full NBA API data (real players, takes ~30 min)
 python data/populate_db.py --mode api
+
+# After API population, run these to fill in missing fields:
+python data/populate_season_stats.py
+python data/update_all_nba.py
+python data/update_positions.py
+python data/update_30ppg_seasons.py
+python data/update_finals_mvps.py
+python data/update_dominant_championships.py
+python data/update_scoring_titles.py
+python data/add_missing_legends.py
+python data/add_legends_batch.py
 ```
 
 ### 4. Run Application
 
 ```bash
-# Start the Flask development server
-python app.py
+# Backend
+python app.py   # http://localhost:5001
 
-# Application will be available at http://localhost:5000
+# Frontend
+cd frontend && npm run dev   # http://localhost:5173
 ```
 
 ## API Endpoints
 
-- `GET /` - Homepage
-- `GET /questions` - Questionnaire form
-- `POST /submit_preferences` - Submit user preferences and calculate rankings
-- `GET /results/<session_id>` - View ranking results
-- `GET /api/players` - Get all players (JSON)
-- `GET /api/player/<id>` - Get specific player details (JSON)
-
-## Database Schema
-
-### Players Table
-- Basic player information (name, position, height, weight, years active)
-
-### Career Stats Table
-- Career averages and totals (PPG, RPG, APG, FG%, etc.)
-
-### Advanced Stats Table
-- Advanced metrics (PER, TS%, BPM, VORP, etc.)
-
-### Achievements Table
-- Championships, MVP awards, All-Star selections, Hall of Fame status
-
-### User Sessions Table
-- User preferences and generated rankings
+- `GET /` — Serves React SPA (or legacy template if no build exists)
+- `POST /api/submit_preferences` — Submit preferences, returns ranked players (JSON)
+- `GET /api/players` — All players (JSON)
+- `GET /api/player/<id>` — Single player detail (JSON)
 
 ## Ranking Algorithm
 
-The application uses a weighted scoring system that considers:
+Players are scored on a 0–100 percentile scale across six categories:
 
-1. **Offensive Skills** (Scoring, shooting efficiency, playmaking)
-2. **Defensive Skills** (Steals, blocks, defensive impact)
-3. **Team Success** (Championships, Finals appearances)
-4. **Longevity** (Games played, seasons, sustained excellence)
-5. **Efficiency** (Advanced metrics, per-minute production)
-6. **Peak Performance** (Best seasons, MVP awards, dominance)
+1. **Offensive Skills** — PPG, FG%, APG, total points, scoring titles
+2. **Defensive Skills** — SPG, BPG, RPG (position-adjusted)
+3. **Team Success** — Championships (with multipliers for dynasties), Finals appearances
+4. **Longevity** — Games played + quality longevity bonus (25+ PPG seasons rewarded, sub-15 PPG seasons penalized after year 3)
+5. **Efficiency** — Scoring efficiency (PPG × FG%), scoring titles
+6. **Peak Performance** — MVP awards, All-Star selections, All-NBA teams, scoring titles, 30+ PPG seasons
 
-Users can adjust the importance of each factor via interactive sliders.
+Weights for each category come from the user's slider inputs. All weights have a 10% floor so no category is fully ignored. Weights are normalized to sum to 1.0 before scoring.
+
+Users can adjust the sliders — they auto-balance to always sum to 100% and cannot go below 0%.
 
 ## Development
 
-### Adding New Players
-```bash
-# Update database with latest player data
-python data/populate_db.py --mode api
-```
-
-### Modifying Ranking Algorithm
-Edit the `calculate_player_rankings()` function in `app.py` to adjust how different statistics are weighted and combined.
+### Modifying the Ranking Algorithm
+Edit `calculate_player_rankings()` in `app.py`.
 
 ### Database Migrations
-For schema changes, use Flask-Migrate:
 ```bash
-flask db init
-flask db migrate -m "Description of changes"
+flask db migrate -m "description"
 flask db upgrade
+```
+
+### Building for Production
+```bash
+cd frontend && npm run build
+# Output goes to static/dist/ — Flask serves it automatically
 ```
 
 ## Environment Variables
 
-Create a `.env` file in the project root:
-
 ```env
-# Database
 DATABASE_URL=sqlite:///nba_goat.db
-# OR for PostgreSQL:
-# DATABASE_URL=postgresql://user:password@localhost:5432/nba_goat
-
-# Flask
 SECRET_KEY=your-secret-key-here
 DEBUG=True
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## Future Enhancements
-
-- [ ] Player comparison tool
-- [ ] Advanced filtering options
-- [ ] Data visualizations and charts
-- [ ] Export rankings to PDF/CSV
-- [ ] Historical era adjustments
-- [ ] Machine learning-based predictions
-- [ ] Social sharing features
-- [ ] User accounts and saved preferences
 
 ## License
 

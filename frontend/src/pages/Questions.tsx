@@ -8,12 +8,12 @@ import { submitPreferences } from '../api/client';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const CATEGORIES = [
-  { key: 'offensive_weight',      label: 'Offensive Skills',        color: '#7B5EA7' },
-  { key: 'defensive_weight',      label: 'Defensive Skills',        color: '#72B8D8' },
-  { key: 'team_success_weight',   label: 'Team Success',            color: '#5B3F87' },
-  { key: 'longevity_weight',      label: 'Career Longevity',        color: '#4A96BA' },
-  { key: 'efficiency_weight',     label: 'Statistical Efficiency',  color: '#B39DCC' },
-  { key: 'peak_performance_weight', label: 'Peak Performance',      color: '#BDE0F0' },
+  { key: 'offensive_weight',        label: 'Offensive Skills',        color: '#7B5EA7', tip: 'PPG, FG%, APG, total points, scoring titles' },
+  { key: 'defensive_weight',        label: 'Defensive Skills',        color: '#72B8D8', tip: 'RPG, BPG, SPG, defensive awards' },
+  { key: 'team_success_weight',     label: 'Team Success',            color: '#5B3F87', tip: 'Championships, Finals appearances, team wins' },
+  { key: 'longevity_weight',        label: 'Career Longevity',        color: '#4A96BA', tip: 'Games played, seasons, All-Star selections' },
+  { key: 'efficiency_weight',       label: 'Statistical Efficiency',  color: '#B39DCC', tip: 'FG%, FT%, TS%, PER, win shares per 48' },
+  { key: 'peak_performance_weight', label: 'Peak Performance',        color: '#BDE0F0', tip: 'MVP awards, All-NBA 1st team, best single seasons' },
 ] as const;
 
 type WeightKey = (typeof CATEGORIES)[number]['key'];
@@ -116,17 +116,27 @@ export default function Questions() {
             {CATEGORIES.map((cat) => (
               <div key={cat.key}>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-sm font-medium text-ink">{cat.label}</label>
+                  <label htmlFor={cat.key} className="text-sm font-medium text-ink flex items-center gap-1.5">
+                    {cat.label}
+                    <span
+                      className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-rim text-muted text-[10px] font-bold cursor-help shrink-0"
+                      title={cat.tip}
+                    >
+                      ?
+                    </span>
+                  </label>
                   <span className="text-sm font-bold tabular-nums" style={{ color: cat.color }}>
                     {weights[cat.key]}%
                   </span>
                 </div>
                 <input
+                  id={cat.key}
                   type="range"
                   min={0}
                   max={100}
                   value={weights[cat.key]}
                   onChange={(e) => handleSliderChange(cat.key, Number(e.target.value))}
+                  aria-label={cat.label}
                   className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                   style={{ accentColor: cat.color }}
                 />
@@ -135,10 +145,12 @@ export default function Questions() {
 
             {/* Era selector */}
             <div>
-              <label className="block text-sm font-medium text-ink mb-1.5">Era Preference</label>
+              <label htmlFor="era_preference" className="block text-sm font-medium text-ink mb-1.5">Era Preference</label>
               <select
+                id="era_preference"
                 value={era}
                 onChange={(e) => setEra(e.target.value as Preferences['era_preference'])}
+                aria-label="Era Preference"
                 className="w-full bg-canvas border border-rim text-ink text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-purple"
               >
                 <option value="any">All Eras</option>
@@ -195,7 +207,7 @@ export default function Questions() {
                     legend: {
                       position: 'bottom',
                       labels: {
-                        color: '#6B6680',
+                        color: '#56516B',
                         font: { size: 11 },
                         padding: 12,
                       },

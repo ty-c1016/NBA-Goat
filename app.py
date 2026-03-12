@@ -96,14 +96,31 @@ def api_submit_preferences():
     """JSON API: submit preferences and return ranked players."""
     try:
         data = request.get_json(force=True)
+
+        import math
+
+        def _safe_weight(value, default=0.5):
+            """Convert to float and reject NaN/Inf; clamp to [0, 1]."""
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                return default
+            if math.isnan(v) or math.isinf(v):
+                return default
+            return max(0.0, min(1.0, v))
+
+        era_value = data.get('era_preference', 'any')
+        if era_value not in ('modern', 'classic', 'any'):
+            era_value = 'any'
+
         preferences = {
-            'offensive_weight': float(data.get('offensive_weight', 0.5)),
-            'defensive_weight': float(data.get('defensive_weight', 0.5)),
-            'longevity_weight': float(data.get('longevity_weight', 0.5)),
-            'team_success_weight': float(data.get('team_success_weight', 0.5)),
-            'efficiency_weight': float(data.get('efficiency_weight', 0.5)),
-            'peak_performance_weight': float(data.get('peak_performance_weight', 0.5)),
-            'era_preference': data.get('era_preference', 'any')
+            'offensive_weight': _safe_weight(data.get('offensive_weight', 0.5)),
+            'defensive_weight': _safe_weight(data.get('defensive_weight', 0.5)),
+            'longevity_weight': _safe_weight(data.get('longevity_weight', 0.5)),
+            'team_success_weight': _safe_weight(data.get('team_success_weight', 0.5)),
+            'efficiency_weight': _safe_weight(data.get('efficiency_weight', 0.5)),
+            'peak_performance_weight': _safe_weight(data.get('peak_performance_weight', 0.5)),
+            'era_preference': era_value
         }
 
         new_session_id = str(uuid.uuid4())
@@ -168,10 +185,28 @@ def calculate_player_rankings(preferences):
 
     # Filter for quality players only - baseline standards for GOAT consideration
     # Minimum 400 games (≈5 seasons) and 10 PPG to ensure substantial, impactful careers
-    players = db.session.query(Player).join(CareerStats).join(Achievement).filter(
+    # Eager-load relationships to avoid N+1 queries
+    from sqlalchemy.orm import joinedload
+    players = db.session.query(Player).join(CareerStats).join(Achievement).options(
+        joinedload(Player.career_stats),
+        joinedload(Player.achievements),
+        joinedload(Player.season_stats)
+    ).filter(
         CareerStats.games_played >= 400,
         CareerStats.points_per_game >= 10.0
     ).all()
+
+    if not players:
+        return []
+
+    # Apply era_preference filtering
+    era_preference = preferences.get('era_preference', 'any')
+    if era_preference == 'modern':
+        # Modern era: players whose careers overlap with 2000+
+        players = [p for p in players if (p.to_year or 0) >= 2000]
+    elif era_preference == 'classic':
+        # Classic era: players whose careers overlap with pre-2000
+        players = [p for p in players if (p.from_year or 9999) < 2000]
 
     if not players:
         return []
@@ -230,7 +265,7 @@ def calculate_player_rankings(preferences):
         # Calculate quality longevity score based on season PPG
         # Rewards sustained excellence, penalizes decline years
         # Exclude incomplete seasons (< 40 games for modern, < 30 for 1960s era)
-        season_stats = SeasonStats.query.filter_by(player_id=player.id).order_by(SeasonStats.season).all()
+        season_stats = sorted(player.season_stats, key=lambda s: s.season)
 
         # Bill Russell era: use lower threshold (seasons were 68-82 games in 1960s)
         if player.full_name == 'Bill Russell':
@@ -245,7 +280,7 @@ def calculate_player_rankings(preferences):
             # His value came from defense/rebounding, so quality rules don't apply
             if player.full_name == 'Bill Russell':
                 quality_bonus = 0  # No penalties or bonuses based on PPG
-                quality_longevity = percentile_stats['games'][idx] * 0.5
+                quality_longevity = max(0.0, min(100.0, percentile_stats['games'][idx] * 0.5))
             else:
                 seasons_25plus = sum(1 for s in complete_seasons if s.points_per_game >= 25)
                 seasons_20_25 = sum(1 for s in complete_seasons if 20 <= s.points_per_game < 25)
@@ -264,10 +299,10 @@ def calculate_player_rankings(preferences):
                     bonus_25plus = (5 * 2) + ((seasons_25plus - 5) * 1)
 
                 quality_bonus = bonus_25plus + (seasons_20_25 * 1) - (seasons_under15 * 3)
-                quality_longevity = (percentile_stats['games'][idx] * 0.5) + quality_bonus
+                quality_longevity = max(0.0, min(100.0, (percentile_stats['games'][idx] * 0.5) + quality_bonus))
         else:
             # Fall back to games only if no season data (also weighted at 0.5x)
-            quality_longevity = percentile_stats['games'][idx] * 0.5
+            quality_longevity = max(0.0, min(100.0, percentile_stats['games'][idx] * 0.5))
 
         longevity_metrics = {
             'games': percentile_stats['games'][idx],
@@ -356,10 +391,10 @@ def calculate_player_rankings(preferences):
 
         if championships >= 10:
             # Double-digit championships (Bill Russell): DOUBLE the team success score
-            team_success_score = base_team_success * 2.0
+            team_success_score = min(base_team_success * 2.0, 100.0)
         elif championships >= 4:
             # 4+ championships (dynasty builders): 50% boost
-            team_success_score = base_team_success * 1.5
+            team_success_score = min(base_team_success * 1.5, 100.0)
         else:
             team_success_score = base_team_success
 
@@ -390,7 +425,7 @@ def calculate_player_rankings(preferences):
             'longevity': max(preferences['longevity_weight'], FLOOR_WEIGHT),
             'team_success': max(preferences['team_success_weight'], FLOOR_WEIGHT),
             'efficiency': max(preferences['efficiency_weight'], FLOOR_WEIGHT),
-            'individual_success': max(preferences.get('individual_success_weight', preferences.get('peak_performance_weight', 0.5)), FLOOR_WEIGHT)
+            'individual_success': max(preferences.get('peak_performance_weight', 0.5), FLOOR_WEIGHT)
         }
 
         # Normalize weights to ensure they sum to 1.0

@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Questions from './pages/Questions';
 import Results from './pages/Results';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
@@ -14,7 +15,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/results/:sessionId" element={<Results />} />
-            <Route path="*" element={<Home />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <footer className="text-center text-muted text-xs py-6 border-t border-rim bg-surface">

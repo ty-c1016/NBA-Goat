@@ -11,7 +11,7 @@ export default {
         surface: '#FFFFFF',
         rim: '#E8E3F0',
         ink: '#1E1B2E',
-        muted: '#6B6680',
+        muted: '#56516B',
         purple: {
           DEFAULT: '#7B5EA7',
           dark:    '#5B3F87',

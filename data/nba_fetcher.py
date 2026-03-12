@@ -62,7 +62,7 @@ class NBADataFetcher:
 SAMPLE_PLAYERS_DATA = [
     {
         'id': 2544, 'full_name': 'LeBron James', 'first_name': 'LeBron', 'last_name': 'James',
-        'is_active': True, 'position': 'F', 'height': '6-9', 'weight': 250,
+        'is_active': True, 'position': 'Forward', 'height': '6-9', 'weight': 250,
         'from_year': 2003, 'to_year': 2024, 'teams': '["CLE", "MIA", "LAL"]',
         'career_stats': {
             'games_played': 1421, 'points_per_game': 27.2, 'rebounds_per_game': 7.5,
@@ -75,7 +75,7 @@ SAMPLE_PLAYERS_DATA = [
     },
     {
         'id': 1628369, 'full_name': 'Jayson Tatum', 'first_name': 'Jayson', 'last_name': 'Tatum',
-        'is_active': True, 'position': 'F', 'height': '6-8', 'weight': 210,
+        'is_active': True, 'position': 'Forward', 'height': '6-8', 'weight': 210,
         'from_year': 2017, 'to_year': 2024, 'teams': '["BOS"]',
         'career_stats': {
             'games_played': 513, 'points_per_game': 23.1, 'rebounds_per_game': 7.2,
@@ -88,7 +88,7 @@ SAMPLE_PLAYERS_DATA = [
     },
     {
         'id': 977, 'full_name': 'Michael Jordan', 'first_name': 'Michael', 'last_name': 'Jordan',
-        'is_active': False, 'position': 'G', 'height': '6-6', 'weight': 218,
+        'is_active': False, 'position': 'Guard', 'height': '6-6', 'weight': 218,
         'from_year': 1984, 'to_year': 2003, 'teams': '["CHI", "WAS"]',
         'career_stats': {
             'games_played': 1072, 'points_per_game': 30.1, 'rebounds_per_game': 6.2,
@@ -101,7 +101,7 @@ SAMPLE_PLAYERS_DATA = [
     },
     {
         'id': 76001, 'full_name': 'Kobe Bryant', 'first_name': 'Kobe', 'last_name': 'Bryant',
-        'is_active': False, 'position': 'G', 'height': '6-6', 'weight': 212,
+        'is_active': False, 'position': 'Guard', 'height': '6-6', 'weight': 212,
         'from_year': 1996, 'to_year': 2016, 'teams': '["LAL"]',
         'career_stats': {
             'games_played': 1346, 'points_per_game': 25.0, 'rebounds_per_game': 5.2,
@@ -114,7 +114,7 @@ SAMPLE_PLAYERS_DATA = [
     },
     {
         'id': 76003, 'full_name': 'Tim Duncan', 'first_name': 'Tim', 'last_name': 'Duncan',
-        'is_active': False, 'position': 'F-C', 'height': '6-11', 'weight': 250,
+        'is_active': False, 'position': 'Forward-Center', 'height': '6-11', 'weight': 250,
         'from_year': 1997, 'to_year': 2016, 'teams': '["SAS"]',
         'career_stats': {
             'games_played': 1392, 'points_per_game': 19.0, 'rebounds_per_game': 10.8,

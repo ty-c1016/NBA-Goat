@@ -14,6 +14,24 @@ from models import db, migrate, Player, CareerStats, AdvancedStats, Achievement,
 from config import Config
 import uuid
 import os
+import time
+from collections import defaultdict
+
+# Simple in-memory rate limiter for submission endpoints
+_rate_limit_store = defaultdict(list)
+_RATE_LIMIT_WINDOW = 60   # seconds
+_RATE_LIMIT_MAX = 10       # max requests per window
+
+def _is_rate_limited(key):
+    """Return True if the key has exceeded the rate limit."""
+    now = time.time()
+    timestamps = _rate_limit_store[key]
+    # Prune old entries
+    _rate_limit_store[key] = [t for t in timestamps if now - t < _RATE_LIMIT_WINDOW]
+    if len(_rate_limit_store[key]) >= _RATE_LIMIT_MAX:
+        return True
+    _rate_limit_store[key].append(now)
+    return False
 
 def create_app():
     app = Flask(__name__, static_folder='static')
@@ -51,6 +69,8 @@ def spa_routes(subpath=''):
 @app.route('/submit_preferences', methods=['POST'])
 def submit_preferences():
     """Legacy form-based preferences submission (redirects to results template)."""
+    if _is_rate_limited(request.remote_addr):
+        return jsonify({'error': 'Too many requests'}), 429
     try:
         preferences = {
             'offensive_weight': float(request.form.get('offensive_weight', 0.5)),
@@ -66,7 +86,7 @@ def submit_preferences():
         user_session = UserSession(
             session_id=new_session_id,
             **preferences,
-            ip_address=request.remote_addr
+            ip_address=None
         )
         db.session.add(user_session)
         session['session_id'] = new_session_id
@@ -78,7 +98,8 @@ def submit_preferences():
 
         return redirect(url_for('results_legacy', session_id=user_session.session_id))
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.exception("Error in submit_preferences")
+        return jsonify({'error': 'An internal error occurred'}), 500
 
 @app.route('/results_legacy/<session_id>')
 def results_legacy(session_id):
@@ -94,8 +115,12 @@ def results_legacy(session_id):
 @app.route('/api/submit_preferences', methods=['POST'])
 def api_submit_preferences():
     """JSON API: submit preferences and return ranked players."""
+    if _is_rate_limited(request.remote_addr):
+        return jsonify({'error': 'Too many requests'}), 429
     try:
-        data = request.get_json(force=True)
+        data = request.get_json()
+        if data is None:
+            return jsonify({'error': 'Request must be JSON'}), 415
 
         import math
 
@@ -127,7 +152,7 @@ def api_submit_preferences():
         user_session = UserSession(
             session_id=new_session_id,
             **preferences,
-            ip_address=request.remote_addr
+            ip_address=None
         )
         db.session.add(user_session)
 
@@ -142,7 +167,8 @@ def api_submit_preferences():
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.exception("Error in api_submit_preferences")
+        return jsonify({'error': 'An internal error occurred'}), 500
 
 @app.route('/api/players')
 def api_players():

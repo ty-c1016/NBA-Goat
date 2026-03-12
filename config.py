@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    SECRET_KEY = os.environ.get('SECRET_KEY', os.urandom(32).hex())
 
     # Database configuration
     # Use DATABASE_URL from environment if set, otherwise default to SQLite
@@ -29,4 +29,4 @@ class Config:
     }
 
     # Application settings
-    DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'

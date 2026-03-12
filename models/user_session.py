@@ -30,7 +30,7 @@ class UserSession(db.Model):
     # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)
-    ip_address = db.Column(db.String(45))  # Support IPv6
+    ip_address = db.Column(db.String(45))  # Retained for schema compat; no longer populated
 
     def __repr__(self):
         return f'<UserSession {self.session_id}>'

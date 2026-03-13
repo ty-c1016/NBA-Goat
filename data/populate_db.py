@@ -172,9 +172,14 @@ def populate_from_api(min_games=400, min_seasons=10, min_ppg=10.0):
                 if awards_df is not None and not awards_df.empty:
                     championships = len(awards_df[awards_df['DESCRIPTION'].str.contains('NBA Champion', case=False, na=False)])
                     finals_appearances = championships + len(awards_df[awards_df['DESCRIPTION'].str.contains('Finals|Runner-up', case=False, na=False)])
-                    mvp_awards = len(awards_df[awards_df['DESCRIPTION'].str.contains('Most Valuable Player', case=False, na=False)])
-                    finals_mvp_awards = len(awards_df[awards_df['DESCRIPTION'].str.contains('Finals MVP', case=False, na=False)])
-                    all_star_selections = len(awards_df[awards_df['DESCRIPTION'].str.contains('All-Star', case=False, na=False)])
+                    # Use exact award name to exclude Finals MVP, All-Star Game MVP, Playoff MVP, etc.
+                    mvp_awards = len(awards_df[awards_df['DESCRIPTION'].str.contains(r'NBA Most Valuable Player Award$', case=False, na=False, regex=True)])
+                    finals_mvp_awards = len(awards_df[awards_df['DESCRIPTION'].str.contains('Finals MVP|Finals Most Valuable', case=False, na=False)])
+                    # Exclude All-Star Game MVP award rows; count only selection rows
+                    all_star_selections = len(awards_df[
+                        awards_df['DESCRIPTION'].str.contains('All-Star', case=False, na=False) &
+                        ~awards_df['DESCRIPTION'].str.contains('Most Valuable|MVP', case=False, na=False)
+                    ])
                     all_nba_df = awards_df[awards_df['DESCRIPTION'].str.contains('All-NBA', case=False, na=False)]
                     all_nba_first = len(all_nba_df[all_nba_df['ALL_NBA_TEAM_NUMBER'] == '1'])
                     all_nba_second = len(all_nba_df[all_nba_df['ALL_NBA_TEAM_NUMBER'] == '2'])

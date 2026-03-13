@@ -1,5 +1,5 @@
 import { useParams, useLocation, Navigate, Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { RankedPlayer, Preferences } from '../types';
 
 interface LocationState {
@@ -56,6 +56,8 @@ export default function Results() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const location = useLocation();
   const routerState = location.state as LocationState | undefined;
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const toggleRow = (id: number) => setExpandedRow(prev => prev === id ? null : id);
 
   const state = useMemo<LocationState | null>(() => {
     if (routerState?.players) {
@@ -245,43 +247,127 @@ export default function Results() {
                 </tr>
               </thead>
               <tbody>
-                {players.map((p, i) => (
-                  <tr
-                    key={p.player.id}
-                    className="border-b border-rim/50 hover:bg-purple-subtle/40 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-muted font-mono text-xs">{i + 1}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-ink">{p.player.full_name}</div>
-                      <div className="text-muted text-xs sm:hidden">{p.player.position}</div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-muted hidden sm:table-cell text-xs">
-                      {p.player.position}
-                    </td>
-                    <td className="px-4 py-3 text-center text-muted hidden md:table-cell text-xs">
-                      {p.player.from_year}–{p.player.to_year}
-                    </td>
-                    <td className="px-4 py-3 text-center text-ink font-medium">
-                      {fmt(p.career_stats?.points_per_game)}
-                    </td>
-                    <td className="px-4 py-3 text-center text-muted hidden sm:table-cell">
-                      {fmt(p.career_stats?.rebounds_per_game)}
-                    </td>
-                    <td className="px-4 py-3 text-center text-muted hidden sm:table-cell">
-                      {fmt(p.career_stats?.assists_per_game)}
-                    </td>
-                    <td className="px-4 py-3 text-center hidden md:table-cell">
-                      {p.achievements?.championships > 0 ? (
-                        <span className="text-purple font-bold">{p.achievements.championships}</span>
-                      ) : (
-                        <span className="text-muted">—</span>
+                {players.map((p, i) => {
+                  const isExpanded = expandedRow === p.player.id;
+                  return (
+                    <>
+                      <tr
+                        key={p.player.id}
+                        onClick={() => toggleRow(p.player.id)}
+                        className="border-b border-rim/50 hover:bg-purple-subtle/40 transition-colors cursor-pointer select-none"
+                      >
+                        <td className="px-4 py-3 text-muted font-mono text-xs">{i + 1}</td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-ink">{p.player.full_name}</div>
+                          <div className="text-muted text-xs sm:hidden">{p.player.position}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted hidden sm:table-cell text-xs">
+                          {p.player.position}
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted hidden md:table-cell text-xs">
+                          {p.player.from_year}–{p.player.to_year}
+                        </td>
+                        <td className="px-4 py-3 text-center text-ink font-medium">
+                          {fmt(p.career_stats?.points_per_game)}
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted hidden sm:table-cell">
+                          {fmt(p.career_stats?.rebounds_per_game)}
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted hidden sm:table-cell">
+                          {fmt(p.career_stats?.assists_per_game)}
+                        </td>
+                        <td className="px-4 py-3 text-center hidden md:table-cell">
+                          {p.achievements?.championships > 0 ? (
+                            <span className="text-purple font-bold">{p.achievements.championships}</span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className={scoreColor(p.score)}>{fmt(p.score)}</span>
+                            <span className={`text-muted text-xs transition-transform duration-200 inline-block ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${p.player.id}-expanded`} className="border-b border-rim bg-canvas">
+                          <td colSpan={9} className="px-4 py-4">
+                            <div className="flex flex-col sm:flex-row gap-6">
+                              {/* Score breakdown */}
+                              <div className="flex-1">
+                                <p className="text-xs text-muted uppercase font-semibold tracking-wide mb-3">Score Breakdown</p>
+                                <div className="space-y-2">
+                                  {Object.keys(CATEGORY_LABELS).map((key) => {
+                                    const val = p.category_scores?.[key as keyof typeof p.category_scores] ?? 0;
+                                    return (
+                                      <div key={key} className="flex items-center gap-2">
+                                        <span className="text-xs text-muted w-24 shrink-0">{CATEGORY_LABELS[key]}</span>
+                                        <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full ${CATEGORY_COLORS[key] || 'bg-purple'}`}
+                                            style={{ width: `${Math.max(0, Math.min(100, val))}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-xs text-muted tabular-nums w-8 text-right">{fmt(val)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              {/* Achievements */}
+                              <div className="sm:w-56">
+                                <p className="text-xs text-muted uppercase font-semibold tracking-wide mb-3">Achievements</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {(p.achievements?.championships ?? 0) > 0 && (
+                                    <span className="bg-purple-subtle border border-purple/20 text-purple text-xs font-medium px-2.5 py-1 rounded-full">
+                                      🏆 {p.achievements.championships} Ring{p.achievements.championships !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {(p.achievements?.mvp_awards ?? 0) > 0 && (
+                                    <span className="bg-purple-subtle border border-purple/20 text-purple text-xs font-medium px-2.5 py-1 rounded-full">
+                                      MVP ×{p.achievements.mvp_awards}
+                                    </span>
+                                  )}
+                                  {(p.achievements?.all_star_selections ?? 0) > 0 && (
+                                    <span className="bg-sky-subtle border border-sky-light text-sky-dark text-xs font-medium px-2.5 py-1 rounded-full">
+                                      ⭐ {p.achievements.all_star_selections}× All-Star
+                                    </span>
+                                  )}
+                                  {(p.achievements?.finals_appearances ?? 0) > 0 && (
+                                    <span className="bg-surface border border-rim text-muted text-xs font-medium px-2.5 py-1 rounded-full">
+                                      {p.achievements.finals_appearances}× Finals
+                                    </span>
+                                  )}
+                                  {(p.achievements?.all_nba_first_team ?? 0) > 0 && (
+                                    <span className="bg-surface border border-rim text-muted text-xs font-medium px-2.5 py-1 rounded-full">
+                                      All-NBA 1st ×{p.achievements.all_nba_first_team}
+                                    </span>
+                                  )}
+                                  {(p.achievements?.scoring_titles ?? 0) > 0 && (
+                                    <span className="bg-surface border border-rim text-muted text-xs font-medium px-2.5 py-1 rounded-full">
+                                      🎯 {p.achievements.scoring_titles} Scoring Title{p.achievements.scoring_titles !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {(p.achievements?.seasons_30ppg ?? 0) > 0 && (
+                                    <span className="bg-surface border border-rim text-muted text-xs font-medium px-2.5 py-1 rounded-full">
+                                      {p.achievements.seasons_30ppg}× 30+ PPG Season{p.achievements.seasons_30ppg !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {p.achievements?.hall_of_fame && (
+                                    <span className="bg-purple-subtle border border-purple/20 text-purple text-xs font-medium px-2.5 py-1 rounded-full">
+                                      Hall of Fame
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={scoreColor(p.score)}>{fmt(p.score)}</span>
-                    </td>
-                  </tr>
-                ))}
+                    </>
+                  );
+                })}
               </tbody>
             </table>
           </div>

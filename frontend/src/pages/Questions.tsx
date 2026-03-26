@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -34,38 +34,70 @@ export default function Questions() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [inputValues, setInputValues] = useState<Record<WeightKey, string>>(() =>
+    Object.fromEntries(CATEGORIES.map((c) => [c.key, String(DEFAULT_WEIGHTS[c.key])])) as Record<WeightKey, string>
+  );
+  const inputRef = useRef<Record<WeightKey, boolean>>({} as Record<WeightKey, boolean>);
+
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
   const isValid = total === 100;
 
-  const handleSliderChange = useCallback((changedKey: WeightKey, newValue: number) => {
+  const applyWeight = useCallback((changedKey: WeightKey, newValue: number) => {
     setWeights((prev) => {
       const otherKeys = CATEGORIES.map((c) => c.key).filter((k) => k !== changedKey);
       newValue = Math.max(0, Math.min(100, newValue));
       const otherTotal = otherKeys.reduce((s, k) => s + prev[k], 0);
       const remaining = 100 - newValue;
 
+      let updated: Record<WeightKey, number>;
       if (otherTotal === 0) {
         const share = Math.floor(remaining / otherKeys.length);
         const extra = remaining - share * otherKeys.length;
-        const updated: Record<WeightKey, number> = { ...prev, [changedKey]: newValue };
+        updated = { ...prev, [changedKey]: newValue };
         otherKeys.forEach((k, i) => { updated[k] = share + (i === 0 ? extra : 0); });
-        return updated;
+      } else {
+        updated = { ...prev, [changedKey]: newValue };
+        let allocated = 0;
+        otherKeys.forEach((k, i) => {
+          if (i < otherKeys.length - 1) {
+            const scaled = Math.max(0, Math.round((prev[k] / otherTotal) * remaining));
+            updated[k] = scaled;
+            allocated += scaled;
+          } else {
+            updated[k] = Math.max(0, remaining - allocated);
+          }
+        });
       }
 
-      const updated: Record<WeightKey, number> = { ...prev, [changedKey]: newValue };
-      let allocated = 0;
-      otherKeys.forEach((k, i) => {
-        if (i < otherKeys.length - 1) {
-          const scaled = Math.max(0, Math.round((prev[k] / otherTotal) * remaining));
-          updated[k] = scaled;
-          allocated += scaled;
-        } else {
-          updated[k] = Math.max(0, remaining - allocated);
+      // Keep input values in sync for sliders (not for the field being typed)
+      setInputValues((iv) => {
+        const next = { ...iv };
+        for (const k of CATEGORIES.map((c) => c.key)) {
+          if (!inputRef.current[k]) next[k] = String(updated[k]);
         }
+        return next;
       });
+
       return updated;
     });
   }, []);
+
+  const handleSliderChange = useCallback((key: WeightKey, val: number) => applyWeight(key, val), [applyWeight]);
+
+  const handleInputChange = useCallback((key: WeightKey, raw: string) => {
+    setInputValues((iv) => ({ ...iv, [key]: raw }));
+  }, []);
+
+  const handleInputCommit = useCallback((key: WeightKey, raw: string) => {
+    inputRef.current[key] = false;
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+      applyWeight(key, parsed);
+    } else {
+      // Revert to current weight value
+      setInputValues((iv) => ({ ...iv, [key]: String(weights[key]) }));
+    }
+  }, [applyWeight, weights]);
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -125,9 +157,21 @@ export default function Questions() {
                       ?
                     </span>
                   </label>
-                  <span className="text-sm font-bold tabular-nums" style={{ color: cat.color }}>
-                    {weights[cat.key]}%
-                  </span>
+                  <div className="flex items-center gap-0.5">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={inputValues[cat.key]}
+                      onFocus={() => { inputRef.current[cat.key] = true; }}
+                      onChange={(e) => handleInputChange(cat.key, e.target.value)}
+                      onBlur={(e) => handleInputCommit(cat.key, e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                      className="w-10 text-right text-sm font-bold tabular-nums bg-transparent border-none outline-none focus:bg-surface focus:rounded px-0.5 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      style={{ color: cat.color }}
+                    />
+                    <span className="text-sm font-bold" style={{ color: cat.color }}>%</span>
+                  </div>
                 </div>
                 <input
                   id={cat.key}
